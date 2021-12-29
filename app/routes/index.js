@@ -1,5 +1,5 @@
 const admin = require('./admin');
-const worker = require('./worker');
+const worker = require('./user');
 
 module.exports = {
     admin,
