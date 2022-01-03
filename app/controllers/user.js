@@ -105,8 +105,6 @@ const createWorkSpace = (req, res) => {
 
     body.noOfSessions = 0;
 
-    console.log(body)
-
     client.db("mind-storm").collection("work-spaces").insertOne(
         body,
         (err, result) => {
@@ -131,6 +129,8 @@ const createWorkSpace = (req, res) => {
 const getYourWorkSpaces = (req, res) => {
 
     const { userId } = req.params
+
+    console.log(userId)
 
     client.db("mind-storm").collection("work-spaces")
         .find({ userId })
@@ -162,20 +162,26 @@ const getYourWorkSpaces = (req, res) => {
 
 const joinWorkSpace = async (req, res) => {
 
-    const { _id, userEmail } = req.body
+    const { _id, userEmail, userName } = req.body
 
-    console.log(_id)
+    const participant = {
+        workSpaceId: _id,
+        userEmail,
+        userName
+    }
 
     const workSpace = await client
         .db("mind-storm")
         .collection("work-spaces")
         .findOne({ _id: ObjectID(_id) });
 
+    console.log(workSpace)
+
     if (workSpace) {
 
         const participants = workSpace.participants ? workSpace.participants : []
 
-        if (userEmail && !participants.includes(userEmail)) {
+        if (!participants.includes(userEmail)) {
             participants.push(userEmail)
             const body = {
                 participants,
@@ -193,10 +199,23 @@ const joinWorkSpace = async (req, res) => {
                             })
                         }
                         else if (!err) {
-                            res.json({
-                                success: true,
-                                message: `You have joined ${workSpace.name}`
-                            })
+                            client.db("mind-storm").collection("participants").insertOne(
+                                participant,
+                                (err, result) => {
+                                    if (!err) {
+                                        res.json({
+                                            success: true,
+                                            message: `You have joined ${workSpace.name}`
+                                        })
+                                    } else {
+                                        res.json({
+                                            success: false,
+                                            message: 'Someting went wrong',
+                                            info: err,
+                                        });
+                                    }
+                                }
+                            );
                         }
                     });
 
@@ -204,10 +223,9 @@ const joinWorkSpace = async (req, res) => {
         else {
             res.json({
                 success: false,
-                message: `You are alrady a part of ${workSpace.name}`
+                message: `You are already a part of ${workSpace.name}`
             })
         }
-
 
     }
 
@@ -217,8 +235,6 @@ const joinWorkSpace = async (req, res) => {
 const getJoinedWorkSpaces = (req, res) => {
 
     const { email } = req.params
-
-    console.log(email)
 
     client.db("mind-storm").collection("work-spaces")
         .find({})
@@ -271,47 +287,268 @@ const getJoinedWorkSpaces = (req, res) => {
 
 }
 
-
 // session cruds
 
-const createSessions = (req, res) => {
+const createSessions = async (req, res) => {
 
+    const { workSpaceId } = req.body;
     const info = req.body;
+    info.status = "active"
 
-    const { workSpaceId } = req.params;
-
-    info.workSpaceId = workSpaceId;
+    const workSpace = await client
+        .db("mind-storm")
+        .collection("work-spaces")
+        .findOne({ _id: ObjectID(workSpaceId) });
 
     client.db("mind-storm").collection("session").insertOne(
+        info,
         (err, result) => {
             if (!err) {
-                client.db("mind-storm").collection("work-spaces").insertOne(
-                    info,
-                    (err, result) => {
-                        if (!err) {
-                            res.json({
-                                success: true,
-                                message: "Session created successfully now you are brain writing",
-                            });
-                        } else {
-                            res.json({
-                                success: false,
-                                message: 'Someting went wrong',
-                                info: err,
-                            });
-                        }
-                    }
-                );
+                client.db("mind-storm").collection("work-spaces")
+                    .findOneAndUpdate({ _id: ObjectID(workSpaceId) },
+                        { $set: { noOfSessions: Number(workSpace.noOfSessions + 1) } }, (error, result) => {
+                            if (error) {
+                                res.json({
+                                    success: false,
+                                    message: "Something went wrong",
+                                    error: error
+                                })
+                            }
+                            else if (!error) {
+                                res.json({
+                                    success: true,
+                                    message: "Session as been created you are brain writing",
+                                })
+                            }
+                        });
+
             } else {
                 res.json({
                     success: false,
-                    message: err,
+                    message: "Something went wrong",
+                    error: err
                 });
             }
         }
     );
 
     return res;
+}
+
+const getSessions = (req, res) => {
+
+    const { workSpaceId } = req.params
+
+    client.db("mind-storm").collection("session")
+        .find({ workSpaceId })
+        .toArray((err, result) => {
+            if (result) {
+                res.json({
+                    success: true,
+                    info: result,
+                });
+            }
+            if (err) {
+                res.json({
+                    success: false,
+                    message: 'Something went wrong',
+                    error: error,
+                });
+            }
+            if (!result) {
+                res.json({
+                    success: true,
+                    message: "Ops, you have not created any sessions yet..",
+                });
+            }
+        });
+
+    return true
+
+}
+
+const endSession = (req, res) => {
+
+    const { _id } = req.params
+
+    console.log(_id)
+
+    client.db("mind-storm").collection("session")
+        .findOneAndUpdate({ _id: ObjectID(_id) },
+            { $set: { status: 'closed' } }, (err, result) => {
+                if (err) {
+                    res.json({
+                        success: false,
+                        message: "Something went wrong",
+                        error: err
+                    })
+                }
+                else if (!err) {
+                    res.json({
+                        success: true,
+                        message: "Session has been closed",
+                    })
+                }
+            });
+
+    return true
+
+}
+
+// participants
+
+const getParticipants = (req, res) => {
+
+    const { workSpaceId } = req.params
+
+    console.log(workSpaceId)
+
+    client.db("mind-storm").collection("participants")
+        .find({ workSpaceId })
+        .toArray((err, result) => {
+            if (result) {
+                res.json({
+                    success: true,
+                    info: result,
+                });
+            }
+            if (err) {
+                res.json({
+                    success: false,
+                    message: 'Something went wrong',
+                    error: error,
+                });
+            }
+            if (!result) {
+                res.json({
+                    success: true,
+                    message: "Ops, you have not created any sessions yet..",
+                });
+            }
+        });
+
+    return true
+
+}
+
+// notes
+
+const createNotes = (req, res) => {
+
+    const info = req.body;
+
+    client.db("mind-storm").collection("notes").insertOne(
+        info,
+        (err, result) => {
+            if (!err) {
+                res.json({
+                    success: true,
+                    message: "Idea posted successfully",
+                });
+            } else {
+                res.json({
+                    success: false,
+                    message: 'Someting went wrong',
+                    info: err,
+                });
+            }
+        }
+    );
+
+    return res;
+}
+
+const getNotes = (req, res) => {
+
+    const { sessionId } = req.params
+
+    console.log(sessionId)
+
+    client.db("mind-storm").collection("notes")
+        .find({ sessionId })
+        .toArray((err, result) => {
+            if (result) {
+                res.json({
+                    success: true,
+                    info: result,
+                });
+            }
+            if (err) {
+                res.json({
+                    success: false,
+                    message: 'Something went wrong',
+                    error: error,
+                });
+            }
+            if (!result) {
+                res.json({
+                    success: true,
+                    message: "Ops, you no one as posted any idea yet..",
+                });
+            }
+        });
+
+    return true
+
+}
+
+// answers
+
+const createAnswer = (req, res) => {
+
+    const info = req.body;
+
+    client.db("mind-storm").collection("answers").insertOne(
+        info,
+        (err, result) => {
+            if (!err) {
+                res.json({
+                    success: true,
+                    message: "Answer posted successfully",
+                });
+            } else {
+                res.json({
+                    success: false,
+                    message: 'Someting went wrong',
+                    info: err,
+                });
+            }
+        }
+    );
+
+    return res;
+}
+
+const getAnswers = (req, res) => {
+
+    const { sessionId } = req.params
+
+    client.db("mind-storm").collection("answers")
+        .find({ sessionId })
+        .toArray((err, result) => {
+            if (result) {
+                res.json({
+                    success: true,
+                    info: result,
+                });
+            }
+            if (err) {
+                res.json({
+                    success: false,
+                    message: 'Something went wrong',
+                    error: error,
+                });
+            }
+            if (!result) {
+                res.json({
+                    success: true,
+                    message: "Ops, you no one as posted any idea yet..",
+                });
+            }
+        });
+
+    return true
+
 }
 
 module.exports = {
@@ -322,4 +559,11 @@ module.exports = {
     joinWorkSpace,
     getJoinedWorkSpaces,
     createSessions,
+    getSessions,
+    getParticipants,
+    createNotes,
+    getNotes,
+    createAnswer,
+    getAnswers,
+    endSession
 }

@@ -5,6 +5,12 @@ const {
   router
 } = require('./app/config/express')
 
+// setting up web sockets
+
+const { socketConnections } = require('./app/config/sockets')
+
+socketConnections()
+
 // data base set up
 
 const { client, dbConnect } = require('./app/config/db')
