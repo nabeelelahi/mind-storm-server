@@ -5,15 +5,20 @@ const { BASE_URL } = require("../config/constants")
 const { upload } = require('../config/multer')
 
 const {
-  adminLogin,
-  getAllWorkers,
-  registerWorkers
+  getUsers,
+  addAdmin,
+  getAdmin,
+  getQueries
 } = require('../controllers/admin')
 
-router.get(`${BASE_URL}/admin/GET/login/:email/:password`, adminLogin);
+router.get(`${BASE_URL}/admin/GET/login/:email/:password`, getUsers)
 
-router.get(`${BASE_URL}/admin/GET/all-users`, getAllWorkers)
+router.get(`${BASE_URL}/admin/GET/all-users`, getUsers)
 
-router.post(`${BASE_URL}/admin/POST/register-worker`, registerWorkers);
+router.post(`${BASE_URL}/admin/POST/sub-admin`, addAdmin)
+
+router.get(`${BASE_URL}/admin/GET/sub-admins`, getAdmin)
+
+router.get(`${BASE_URL}/admin/GET/sub-queries`, getQueries)
 
 module.exports = router

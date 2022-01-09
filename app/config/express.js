@@ -12,7 +12,7 @@ module.exports = {
   App: () => {
 
     const app = express();
-    
+
     const path = require("path");
 
     const PORT = 7000;
@@ -22,9 +22,16 @@ module.exports = {
     app.use(express.urlencoded({ extended: true }));
 
     app.use(
-      `/${BASE_URL}/uploads/`,
-      express.static(path.join(__dirname, "uploads"))
-    );
+      `${BASE_URL}/public/uploads/`,
+      express.static(`${appRoot}/public/uploads/`)
+    )
+
+    app.use(
+      `${BASE_URL}/public/uploads/`,
+      express.static(`${appRoot}/public/assets/`)
+    )
+
+
     app.use(cors())
 
     app.listen(
@@ -37,7 +44,7 @@ module.exports = {
     app.get(`${BASE_URL}/check`, (req, res) => {
 
       res.send('fine')
-  
+
       return res;
     });
 

@@ -47,6 +47,16 @@ const register = (req, res) => {
 
     const info = req.body;
 
+    let file;
+
+    if (req.file) {
+        const { originalname, mimetype } = req.file;
+        file =
+            `public/uploads/${originalname}`;
+    }
+
+    info.file = file;
+
     client.db("mind-storm").collection("users").findOne(
         { email: info.email },
         function (err, result) {
@@ -89,15 +99,106 @@ const register = (req, res) => {
     return res;
 }
 
+// profile
+
+const updateProfile = (req, res) => {
+
+
+    const { _id } = req.body;
+    
+    const body = req.body;
+
+    delete body._id
+
+    client.db("mind-storm").collection("users")
+        .findOneAndUpdate({ _id: ObjectID(_id) },
+            { $set: body }, async(err, result) => {
+                if (err) {
+                    res.json({
+                        success: false,
+                        message: "Something went wrong",
+                        error: err
+                    })
+                }
+                else if (!err) {
+                  
+                    const user = await client
+                    .db("mind-storm")
+                    .collection("users")
+                    .findOne({ _id: ObjectID(_id) });
+
+                    res.json({
+                        success: true,
+                        message: 'Profile editied successfully',
+                        info: user
+                    })
+                }
+            });
+
+
+}
+
+const updateProfilePicture = (req, res) => {
+
+
+    const { _id } = req.body;
+    
+    let file;
+
+    if (req.file) {
+        const { originalname, mimetype } = req.file;
+        file =
+            `public/uploads/${originalname}`;
+    }
+    
+
+    client.db("mind-storm").collection("users")
+        .findOneAndUpdate({ _id: ObjectID(_id) },
+            { $set: { file } }, async(err, result) => {
+                if (err) {
+                    res.json({
+                        success: false,
+                        message: "Something went wrong",
+                        error: err
+                    })
+                }
+                else if (!err) {
+                  
+                    const user = await client
+                    .db("mind-storm")
+                    .collection("users")
+                    .findOne({ _id: ObjectID(_id) });
+
+                    res.json({
+                        success: true,
+                        message: 'Profile editied successfully',
+                        info: user
+                    })
+                }
+            });
+
+
+}
+
 // Work space cruds
 
 const createWorkSpace = (req, res) => {
+
+    let file;
+
+    if (req.file) {
+        const { originalname, mimetype } = req.file;
+        file =
+            `public/uploads/${originalname}`;
+    }
 
     const body = req.body;
 
     const { userId } = req.params;
 
     body.userId = userId;
+
+    body.file = file;
 
     body.participants = [];
 
@@ -129,8 +230,6 @@ const createWorkSpace = (req, res) => {
 const getYourWorkSpaces = (req, res) => {
 
     const { userId } = req.params
-
-    console.log(userId)
 
     client.db("mind-storm").collection("work-spaces")
         .find({ userId })
@@ -174,8 +273,6 @@ const joinWorkSpace = async (req, res) => {
         .db("mind-storm")
         .collection("work-spaces")
         .findOne({ _id: ObjectID(_id) });
-
-    console.log(workSpace)
 
     if (workSpace) {
 
@@ -287,6 +384,77 @@ const getJoinedWorkSpaces = (req, res) => {
 
 }
 
+const deleteWorkSpace = (req, res) => {
+
+    const { _id } = req.body;
+
+    client.db("mind-storm").collection("work-spaces").findOneAndDelete(
+        { _id: ObjectID(_id) },
+        (err, result) => {
+            if (!err) {
+                res.json({
+                    success: true,
+                    message: "Workspace deleted successfully",
+                });
+            } else {
+                res.json({
+                    success: false,
+                    message: 'Something went wrong',
+                    error: err
+                });
+            }
+        }
+    )
+}
+
+const leaveWorkSpace = async (req, res) => {
+
+    const { _id, workSpaceId, userEmail, participantId, participantEmail } = req.body;
+    let { participants } = req.body;
+
+    participants = participants.filter((user) => String(user) !== String(participantEmail))
+
+    const body = {
+        participants,
+        noOfParticipants: participants.length
+    }
+
+    client.db("mind-storm").collection("participants").findOneAndDelete(
+        { _id: ObjectID(participantId) },
+        (err, result) => {
+            if (!err) {
+                client.db("mind-storm").collection("work-spaces")
+                    .findOneAndUpdate({ _id: ObjectID(_id) },
+                        { $set: body }, (err, result) => {
+                            if (err) {
+                                res.json({
+                                    success: false,
+                                    message: "Something went wrong",
+                                    error: err
+                                })
+                            }
+                            else if (!err) {
+                                res.json({
+                                    success: true,
+                                    message: "Work Space left successfully",
+                                });
+                            }
+                        });
+            } else {
+                res.json({
+                    success: false,
+                    message: 'Something went wrong',
+                    error: err
+                });
+            }
+        }
+    )
+
+
+    return true
+
+}
+
 // session cruds
 
 const createSessions = async (req, res) => {
@@ -371,8 +539,6 @@ const endSession = (req, res) => {
 
     const { _id } = req.params
 
-    console.log(_id)
-
     client.db("mind-storm").collection("session")
         .findOneAndUpdate({ _id: ObjectID(_id) },
             { $set: { status: 'closed' } }, (err, result) => {
@@ -401,8 +567,6 @@ const getParticipants = (req, res) => {
 
     const { workSpaceId } = req.params
 
-    console.log(workSpaceId)
-
     client.db("mind-storm").collection("participants")
         .find({ workSpaceId })
         .toArray((err, result) => {
@@ -426,6 +590,63 @@ const getParticipants = (req, res) => {
                 });
             }
         });
+
+    return true
+
+}
+
+const deleteParticipant = async (req, res) => {
+
+    const { _id, workSpaceId, userEmail } = req.body;
+
+
+    const workSpace = await client
+        .db("mind-storm")
+        .collection("work-spaces")
+        .findOne({ _id: ObjectID(workSpaceId) });
+
+    let participants = workSpace.participants
+
+    participants = participants.filter((user) => String(user) !== String(userEmail))
+
+    const body = {
+        participants,
+        noOfParticipants: participants.length
+    }
+
+    console.log(body)
+
+    // client.db("mind-storm").collection("participants").findOneAndDelete(
+    //     { _id: ObjectID(_id) },
+    //     (err, result) => {
+    //         if (!err) {
+    //             client.db("mind-storm").collection("work-spaces")
+    //                 .findOneAndUpdate({ _id: ObjectID(workSpaceId) },
+    //                     { $set: body }, (err, result) => {
+    //                         if (err) {
+    //                             res.json({
+    //                                 success: false,
+    //                                 message: "Something went wrong",
+    //                                 error: err
+    //                             })
+    //                         }
+    //                         else if (!err) {
+    //                             res.json({
+    //                                 success: true,
+    //                                 message: "Participants deleted successfully",
+    //                             });
+    //                         }
+    //                     });
+    //         } else {
+    //             res.json({
+    //                 success: false,
+    //                 message: 'Something went wrong',
+    //                 error: err
+    //             });
+    //         }
+    //     }
+    // )
+
 
     return true
 
@@ -461,8 +682,6 @@ const createNotes = (req, res) => {
 const getNotes = (req, res) => {
 
     const { sessionId } = req.params
-
-    console.log(sessionId)
 
     client.db("mind-storm").collection("notes")
         .find({ sessionId })
@@ -551,6 +770,34 @@ const getAnswers = (req, res) => {
 
 }
 
+// queries
+
+const sendQueries = (req, res) => {
+
+    const body = req.body;
+
+    client.db("mind-storm").collection("queries").insertOne(
+        body,
+        (err, result) => {
+            if (!err) {
+                res.json({
+                    success: true,
+                    message: "Your query has been sent successfully",
+                });
+            } else {
+                res.json({
+                    success: false,
+                    message: 'Someting went wrong',
+                    info: err,
+                });
+            }
+        }
+    );
+
+    return res;
+}
+
+
 module.exports = {
     userLogin,
     register,
@@ -558,12 +805,18 @@ module.exports = {
     getYourWorkSpaces,
     joinWorkSpace,
     getJoinedWorkSpaces,
+    deleteWorkSpace,
+    leaveWorkSpace,
     createSessions,
     getSessions,
     getParticipants,
+    deleteParticipant,
     createNotes,
     getNotes,
     createAnswer,
     getAnswers,
-    endSession
+    endSession,
+    sendQueries,
+    updateProfile,
+    updateProfilePicture
 }
