@@ -42,7 +42,7 @@ router.put(`${BASE_URL}/user/PUT/join-workspace`, joinWorkSpace);
 
 router.put(`${BASE_URL}/user/PUT/add-participant/:email`, addParticipant);
 
-router.get(`${BASE_URL}/user/GET/joined-workspace`, getJoinedWorkSpaces);
+router.get(`${BASE_URL}/user/GET/joined-workspace/:email`, getJoinedWorkSpaces);
 
 router.post(`${BASE_URL}/user/POST/create-session`, createSessions);
 

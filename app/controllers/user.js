@@ -340,8 +340,6 @@ const getJoinedWorkSpaces = (req, res) => {
 
                 let workSpaces = []
 
-                // console.log(result)
-
                 result.forEach((item) => {
                     let cat = typeof (item.participants) === 'string' ? item.participants.split(",") : item.participants
                     if (cat?.includes(email)) {
@@ -358,7 +356,7 @@ const getJoinedWorkSpaces = (req, res) => {
                 else {
                     res.json({
                         success: true,
-                        message: "you not joined any workspace yet.",
+                        message: "you have not joined any workspace yet.",
                         workSpacess: [],
                     });
                 }
@@ -419,8 +417,10 @@ const leaveWorkSpace = async (req, res) => {
         noOfParticipants: participants.length
     }
 
+    console.log(participantId)
+
     client.db("mind-storm").collection("participants").findOneAndDelete(
-        { _id: ObjectID(participantId) },
+        { userEmail: String(participantEmail) },
         (err, result) => {
             if (!err) {
                 client.db("mind-storm").collection("work-spaces")
@@ -566,12 +566,8 @@ const endSession = (req, res) => {
 const addParticipant =  async (req, res) => {
 
     const { email } = req.params
-
-    // const participant = {
-    //     workSpaceId: _id,
-    //     userEmail,
-    //     userName
-    // }
+    
+    const workSpace  = req.body
 
     const user = await client
         .db("mind-storm")
@@ -581,57 +577,74 @@ const addParticipant =  async (req, res) => {
         console.log(user)
         console.log(req.body)
 
-    // if (workSpace) {
+    if (user) {
 
-    //     const participants = workSpace.participants ? workSpace.participants : []
+        const participant = {
+            workSpaceId: workSpace._id,
+            userEmail: user.email,
+            userName: user.name
+        }
+        
+        const participants = workSpace.participants ? workSpace.participants : []
 
-    //     if (!participants.includes(userEmail)) {
-    //         participants.push(userEmail)
-    //         const body = {
-    //             participants,
-    //             noOfParticipants: participants.length
-    //         }
+        if (!participants.includes(email)) {
+            participants.push(email)
+          
+            const body = {
+                participants,
+                noOfParticipants: participants.length
+            }
 
-    //         client.db("mind-storm").collection("work-spaces")
-    //             .findOneAndUpdate({ _id: ObjectID(_id) },
-    //                 { $set: body }, (err, result) => {
-    //                     if (err) {
-    //                         res.json({
-    //                             success: false,
-    //                             message: "Something went wrong",
-    //                             error: err
-    //                         })
-    //                     }
-    //                     else if (!err) {
-    //                         client.db("mind-storm").collection("participants").insertOne(
-    //                             participant,
-    //                             (err, result) => {
-    //                                 if (!err) {
-    //                                     res.json({
-    //                                         success: true,
-    //                                         message: `You have joined ${workSpace.name}`
-    //                                     })
-    //                                 } else {
-    //                                     res.json({
-    //                                         success: false,
-    //                                         message: 'Someting went wrong',
-    //                                         info: err,
-    //                                     });
-    //                                 }
-    //                             }
-    //                         );
-    //                     }
-    //                 });
+            console.log(body, 'body')
+            console.log(participants, 'participants')
+            console.log(participant, 'participant')
 
-    //     }
-    //     else {
-    //         res.json({
-    //             success: false,
-    //             message: `You are already a part of ${workSpace.name}`
-    //         })
-    //     }
+            client.db("mind-storm").collection("work-spaces")
+                .findOneAndUpdate({ _id: ObjectID(workSpace._id) },
+                    { $set: body }, (err, result) => {
+                        if (err) {
+                            res.json({
+                                success: false,
+                                message: "Something went wrong",
+                                error: err
+                            })
+                        }
+                        else if (!err) {
+                            client.db("mind-storm").collection("participants").insertOne(
+                                participant,
+                                (err, result) => {
+                                    if (!err) {
+                                        res.json({
+                                            success: true,
+                                            message: `${email} has been added to ${workSpace.name}`
+                                        })
+                                    } else {
+                                        res.json({
+                                            success: false,
+                                            message: 'Someting went wrong',
+                                            info: err,
+                                        });
+                                    }
+                                }
+                            );
+                        }
+                    });
 
-    // }
+        }
+        else {
+            res.json({
+                success: false,
+                message: `${email} is already a part of ${workSpace.name}`
+            })
+        }
+
+    }
+    else{
+        res.json({
+            success: false,
+            message: `User does not exist`
+        })
+    }
 
     return res;
 }
@@ -687,38 +700,36 @@ const deleteParticipant = async (req, res) => {
         noOfParticipants: participants.length
     }
 
-    console.log(body)
-
-    // client.db("mind-storm").collection("participants").findOneAndDelete(
-    //     { _id: ObjectID(_id) },
-    //     (err, result) => {
-    //         if (!err) {
-    //             client.db("mind-storm").collection("work-spaces")
-    //                 .findOneAndUpdate({ _id: ObjectID(workSpaceId) },
-    //                     { $set: body }, (err, result) => {
-    //                         if (err) {
-    //                             res.json({
-    //                                 success: false,
-    //                                 message: "Something went wrong",
-    //                                 error: err
-    //                             })
-    //                         }
-    //                         else if (!err) {
-    //                             res.json({
-    //                                 success: true,
-    //                                 message: "Participants deleted successfully",
-    //                             });
-    //                         }
-    //                     });
-    //         } else {
-    //             res.json({
-    //                 success: false,
-    //                 message: 'Something went wrong',
-    //                 error: err
-    //             });
-    //         }
-    //     }
-    // )
+    client.db("mind-storm").collection("participants").findOneAndDelete(
+        { _id: ObjectID(_id) },
+        (err, result) => {
+            if (!err) {
+                client.db("mind-storm").collection("work-spaces")
+                    .findOneAndUpdate({ _id: ObjectID(workSpaceId) },
+                        { $set: body }, (err, result) => {
+                            if (err) {
+                                res.json({
+                                    success: false,
+                                    message: "Something went wrong",
+                                    error: err
+                                })
+                            }
+                            else if (!err) {
+                                res.json({
+                                    success: true,
+                                    message: "Participants deleted successfully",
+                                });
+                            }
+                        });
+            } else {
+                res.json({
+                    success: false,
+                    message: 'Something went wrong',
+                    error: err
+                });
+            }
+        }
+    )
 
 
     return true
