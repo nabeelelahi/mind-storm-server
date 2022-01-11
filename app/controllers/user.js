@@ -563,6 +563,79 @@ const endSession = (req, res) => {
 
 // participants
 
+const addParticipant =  async (req, res) => {
+
+    const { email } = req.params
+
+    // const participant = {
+    //     workSpaceId: _id,
+    //     userEmail,
+    //     userName
+    // }
+
+    const user = await client
+        .db("mind-storm")
+        .collection("users")
+        .findOne({ email });
+
+        console.log(user)
+        console.log(req.body)
+
+    // if (workSpace) {
+
+    //     const participants = workSpace.participants ? workSpace.participants : []
+
+    //     if (!participants.includes(userEmail)) {
+    //         participants.push(userEmail)
+    //         const body = {
+    //             participants,
+    //             noOfParticipants: participants.length
+    //         }
+
+    //         client.db("mind-storm").collection("work-spaces")
+    //             .findOneAndUpdate({ _id: ObjectID(_id) },
+    //                 { $set: body }, (err, result) => {
+    //                     if (err) {
+    //                         res.json({
+    //                             success: false,
+    //                             message: "Something went wrong",
+    //                             error: err
+    //                         })
+    //                     }
+    //                     else if (!err) {
+    //                         client.db("mind-storm").collection("participants").insertOne(
+    //                             participant,
+    //                             (err, result) => {
+    //                                 if (!err) {
+    //                                     res.json({
+    //                                         success: true,
+    //                                         message: `You have joined ${workSpace.name}`
+    //                                     })
+    //                                 } else {
+    //                                     res.json({
+    //                                         success: false,
+    //                                         message: 'Someting went wrong',
+    //                                         info: err,
+    //                                     });
+    //                                 }
+    //                             }
+    //                         );
+    //                     }
+    //                 });
+
+    //     }
+    //     else {
+    //         res.json({
+    //             success: false,
+    //             message: `You are already a part of ${workSpace.name}`
+    //         })
+    //     }
+
+    // }
+
+    return res;
+}
+
 const getParticipants = (req, res) => {
 
     const { workSpaceId } = req.params
@@ -818,5 +891,6 @@ module.exports = {
     endSession,
     sendQueries,
     updateProfile,
-    updateProfilePicture
+    updateProfilePicture,
+    addParticipant
 }

@@ -24,7 +24,8 @@ const {
     deleteWorkSpace,
     leaveWorkSpace,
     updateProfile,
-    updateProfilePicture
+    updateProfilePicture,
+    addParticipant
 } = require('../controllers/user');
 
 const { upload } = require('../config/multer');
@@ -39,7 +40,9 @@ router.get(`${BASE_URL}/user/GET/work-space/:userId`, getYourWorkSpaces);
 
 router.put(`${BASE_URL}/user/PUT/join-workspace`, joinWorkSpace);
 
-router.get(`${BASE_URL}/user/GET/joined-workspace/:email`, getJoinedWorkSpaces);
+router.put(`${BASE_URL}/user/PUT/add-participant/:email`, addParticipant);
+
+router.get(`${BASE_URL}/user/GET/joined-workspace`, getJoinedWorkSpaces);
 
 router.post(`${BASE_URL}/user/POST/create-session`, createSessions);
 
