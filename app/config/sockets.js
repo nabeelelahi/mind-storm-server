@@ -56,6 +56,12 @@ function socketConnections() {
                 body
             });
         });
+        
+        socket.on("deleteNote", ({ message }) => {
+            io.emit("getDeleteNote", {
+                message
+            });
+        });
 
         socket.on("disconnect", () => {
 

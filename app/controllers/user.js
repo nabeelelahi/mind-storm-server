@@ -261,12 +261,13 @@ const getYourWorkSpaces = (req, res) => {
 
 const joinWorkSpace = async (req, res) => {
 
-    const { _id, userEmail, userName } = req.body
+    const { _id, userEmail, userName, file } = req.body
 
     const participant = {
         workSpaceId: _id,
         userEmail,
-        userName
+        userName,
+        file
     }
 
     const workSpace = await client
@@ -574,15 +575,13 @@ const addParticipant =  async (req, res) => {
         .collection("users")
         .findOne({ email });
 
-        console.log(user)
-        console.log(req.body)
-
     if (user) {
 
         const participant = {
             workSpaceId: workSpace._id,
             userEmail: user.email,
-            userName: user.name
+            userName: user.name,
+            file: user.file
         }
         
         const participants = workSpace.participants ? workSpace.participants : []
@@ -795,6 +794,29 @@ const getNotes = (req, res) => {
 
 }
 
+const deleteNotes = (req, res) => {
+
+    const { _id } = req.body;
+
+    client.db("mind-storm").collection("notes").findOneAndDelete(
+        { _id: ObjectID(_id) },
+        (err, result) => {
+            if (!err) {
+                res.json({
+                    success: true,
+                    message: "Idea successfully",
+                });
+            } else {
+                res.json({
+                    success: false,
+                    message: 'Something went wrong',
+                    error: err
+                });
+            }
+        }
+    )
+}
+
 // answers
 
 const createAnswer = (req, res) => {
@@ -903,5 +925,6 @@ module.exports = {
     sendQueries,
     updateProfile,
     updateProfilePicture,
-    addParticipant
+    addParticipant,
+    deleteNotes
 }

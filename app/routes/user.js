@@ -25,7 +25,8 @@ const {
     leaveWorkSpace,
     updateProfile,
     updateProfilePicture,
-    addParticipant
+    addParticipant,
+    deleteNotes
 } = require('../controllers/user');
 
 const { upload } = require('../config/multer');
@@ -71,6 +72,8 @@ router.delete(`${BASE_URL}/user/DELETE/leave-workspace`, leaveWorkSpace);
 router.put(`${BASE_URL}/user/PUT/update-profile`, updateProfile);
 
 router.put(`${BASE_URL}/user/PUT/update-profile-pic`, upload.single(('file')), updateProfilePicture);
+
+router.delete(`${BASE_URL}/user/DELETE/notes`, deleteNotes);
 
 
 module.exports = router

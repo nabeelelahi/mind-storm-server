@@ -16,6 +16,4 @@ const upload = multer({
   limits: 52428800
 })
 
-const uploadMultiple = upload.fields([{ name: 'images', maxCount: 10 }, { name: 'files', maxCount: 10 }])
-
-module.exports = { upload, uploadMultiple }
+module.exports = { upload }
